@@ -1,0 +1,41 @@
+
+#Ignore thumbnails created by Windows
+Thumbs.db
+#Ignore files built by Visual Studio
+*.obj
+*.exe
+*.pdb
+*.user
+*.aps
+*.pch
+*.vspscc
+*_i.c
+*_p.c
+*.ncb
+*.suo
+*.tlb
+*.tlh
+*.bak
+*.cache
+*.ilk
+*.log
+[Bb]in
+[Bb]in/Debug/TestResults/*
+[Dd]ebug*/
+*.lib
+*.sbr
+obj/
+[Rr]elease*/
+_ReSharper*/
+[Tt]est[Rr]esult*
+.vs/
+#Nuget packages folder
+bin/Debug/TestResults/*
+CleenSheet.DTO/bin/Debug/**
+CleenSheet.DTO/bin/Debug/TestResults/**/*
+CleenSheet.DTO/bin/Debug/TestResults/**
+cleansheet-backend-test/bin/Debug/**
+cleansheet-backend-test/bin/Debug/TestResults/**/*
+cleansheet-backend-test/bin/Debug/TestResults/**
+packages*/
+sh.exe.stackdump
