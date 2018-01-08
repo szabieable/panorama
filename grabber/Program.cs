@@ -7,6 +7,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
+using System.Xml.Linq;
 
 namespace grabber
 {
@@ -14,8 +16,15 @@ namespace grabber
     {
         static void Main(string[] args)
         {
-            Bitmap bmp = (Bitmap)Image.FromFile("pano3.jpg");
-            ConvertToEquirecTangular(bmp, 3200, 2400);
+            //Bitmap bmp = (Bitmap)Image.FromFile("pano3.jpg");
+            
+            
+            //Console.WriteLine("{0}x{1}", bmp.Width, bmp.Height);
+            //ConvertToEquirecTangular(bmp, 6000, 3000);
+            //XmlDocument xmld = ExtractXmp(asd);
+            //IXmpMeta xmp;
+            //xmp = XmpMetaFactory.ParseFromXDocument(XDocument.Parse(xmld.OuterXml));
+            //xmp.AppendArrayItem("Description", "ProjectionType", "equirectangular");
             /*var doc = new HtmlDocument();
             doc.Load(args[0]);
 
@@ -33,6 +42,159 @@ namespace grabber
             var vmp = CombineBitmap(files.ToArray());
             vmp.Save("final.jpg", ImageFormat.Jpeg);*/
 
+            var doc = new HtmlDocument();
+            doc.Load(args[0]);
+            var nodes = doc.DocumentNode.SelectNodes("//img");
+            Bitmap iz, ix, iy, i_z, i_x, i_y;
+            iz = B64toBitmap(nodes[0].Attributes["src"].Value);
+            ix = B64toBitmap(nodes[1].Attributes["src"].Value);
+            i_z = B64toBitmap(nodes[2].Attributes["src"].Value);
+            i_x = B64toBitmap(nodes[3].Attributes["src"].Value);
+            iy = B64toBitmap(nodes[4].Attributes["src"].Value);
+            i_y = B64toBitmap(nodes[5].Attributes["src"].Value);
+
+            Bitmap bitmap = new Bitmap(6000, 3000, PixelFormat.Format24bppRgb);
+            float u, v;
+            float phi, theta;
+            int cubeFaceWidth, cubeFaceHeight;
+
+            cubeFaceWidth = iz.Width;
+            cubeFaceHeight = iz.Height;
+            for (int j = 0; j < bitmap.Height; j++)
+            {
+                v = 1 - ((float)j / bitmap.Height);
+                theta = v * (float)Math.PI;
+
+                for (int i = 0; i < bitmap.Width; i++)
+                {
+                    u = ((float)i / bitmap.Width);
+                    phi = u * 2 * (float)Math.PI;
+
+                    float x, y, z;
+                    x = (float)Math.Sin(phi) * (float)Math.Sin(theta) * -1;
+                    y = (float)Math.Cos(theta);
+                    z = (float)Math.Cos(phi) * (float)Math.Sin(theta) * -1;
+
+                    float xa, ya, za;
+                    float a;
+
+                    a = Math.Max(Math.Abs(x), Math.Max(Math.Abs(y), Math.Abs(z)));
+                    xa = x / a;
+                    ya = y / a;
+                    za = z / a;
+                    Color color;
+                    int xPixel, yPixel;
+                    int xOffset, yOffset;
+                    if (xa == 1)
+                    {
+                        //Right
+                        xPixel = (int)((((za + 1f) / 2f) - 1f) * cubeFaceWidth);
+                        xOffset = 2 * cubeFaceWidth; //Offset
+                        yPixel = (int)((((ya + 1f) / 2f)) * cubeFaceHeight);
+                        yOffset = cubeFaceHeight; //Offset
+                        xPixel = Math.Abs(xPixel);
+                        yPixel = Math.Abs(yPixel);
+                        xPixel += xOffset;
+                        yPixel += yOffset;
+                        color = ix.GetPixel(xPixel, yPixel);
+                        bitmap.SetPixel(i, j, color);
+                    }
+                    else if (xa == -1)
+                    {
+                        //Left
+                        xPixel = (int)((((za + 1f) / 2f)) * cubeFaceWidth);
+                        xOffset = 0;
+                        yPixel = (int)((((ya + 1f) / 2f)) * cubeFaceHeight);
+                        yOffset = cubeFaceHeight;
+                        xPixel = Math.Abs(xPixel);
+                        yPixel = Math.Abs(yPixel);
+                        xPixel += xOffset;
+                        yPixel += yOffset;
+                        color = i_x.GetPixel(xPixel, yPixel);
+                        bitmap.SetPixel(i, j, color);
+                    }
+                    else if (ya == 1)
+                    {
+                        //Up
+                        xPixel = (int)((((xa + 1f) / 2f)) * cubeFaceWidth);
+                        xOffset = cubeFaceWidth;
+                        yPixel = (int)((((za + 1f) / 2f) - 1f) * cubeFaceHeight);
+                        yOffset = 2 * cubeFaceHeight;
+                        xPixel = Math.Abs(xPixel);
+                        yPixel = Math.Abs(yPixel);
+                        xPixel += xOffset;
+                        yPixel += yOffset;
+                        color = iy.GetPixel(xPixel, yPixel);
+                        bitmap.SetPixel(i, j, color);
+                    }
+                    else if (ya == -1)
+                    {
+                        //Down
+                        xPixel = (int)((((xa + 1f) / 2f)) * cubeFaceWidth);
+                        xOffset = cubeFaceWidth;
+                        yPixel = (int)((((za + 1f) / 2f)) * cubeFaceHeight);
+                        yOffset = 0;
+                        xPixel = Math.Abs(xPixel);
+                        yPixel = Math.Abs(yPixel);
+                        xPixel += xOffset;
+                        yPixel += yOffset;
+                        color = i_y.GetPixel(xPixel, yPixel);
+                        bitmap.SetPixel(i, j, color);
+                    }
+                    else if (za == 1)
+                    {
+                        //Front
+                        xPixel = (int)((((xa + 1f) / 2f)) * cubeFaceWidth);
+                        xOffset = cubeFaceWidth;
+                        yPixel = (int)((((ya + 1f) / 2f)) * cubeFaceHeight);
+                        yOffset = cubeFaceHeight;
+                        xPixel = Math.Abs(xPixel);
+                        yPixel = Math.Abs(yPixel);
+                        xPixel += xOffset;
+                        yPixel += yOffset;
+                        color = iz.GetPixel(xPixel, yPixel);
+                        bitmap.SetPixel(i, j, color);
+                    }
+                    else if (za == -1)
+                    {
+                        //Back
+                        xPixel = (int)((((xa + 1f) / 2f) - 1f) * cubeFaceWidth);
+                        xOffset = 3 * cubeFaceWidth;
+                        yPixel = (int)((((ya + 1f) / 2f)) * cubeFaceHeight);
+                        yOffset = cubeFaceHeight;
+                        xPixel = Math.Abs(xPixel);
+                        yPixel = Math.Abs(yPixel);
+                        xPixel += xOffset;
+                        yPixel += yOffset;
+                        color = i_z.GetPixel(xPixel, yPixel);
+                        bitmap.SetPixel(i, j, color);
+                    }
+                    else
+                    {
+                        xPixel = 0;
+                        yPixel = 0;
+                        xOffset = 0;
+                        yOffset = 0;
+                    }
+
+                    xPixel = Math.Abs(xPixel);
+                    yPixel = Math.Abs(yPixel);
+                    xPixel += xOffset;
+                    yPixel += yOffset;
+                }
+
+            }
+            bitmap.Save("out.jpg", ImageFormat.Jpeg);
+
+
+        }
+        public static Bitmap B64toBitmap(string b64)
+        {
+            byte[] img = Convert.FromBase64String(b64.Remove(0, 23));
+            MemoryStream ms = new MemoryStream(img, 0, img.Length);
+
+            ms.Write(img, 0, img.Length);
+            return (Bitmap)Image.FromStream(ms, true);
         }
         public static void Base64ToImage(string fileName, string b64)
         {
@@ -53,10 +215,9 @@ namespace grabber
 
             cubeFaceWidth = input.Width / 4;
             cubeFaceHeight = input.Height / 3;
-
             for (int j = 0; j < bitmap.Height; j++)
             {
-                v = 1 - ((float)j / bitmap.Height);
+                v =1 - ((float)j / bitmap.Height);
                 theta = v * (float)Math.PI;
 
                 for(int i = 0; i < bitmap.Width; i++)
@@ -79,7 +240,6 @@ namespace grabber
                     Color color;
                     int xPixel, yPixel;
                     int xOffset, yOffset;
-
                     if (xa == 1)
                     {
                         //Right
@@ -139,9 +299,11 @@ namespace grabber
                     xPixel = Math.Abs(xPixel);
                     yPixel = Math.Abs(yPixel);
                     xPixel += xOffset;
-                    yPixel += yPixel;
+                    yPixel += yOffset;
 
-                    
+                    if (yPixel  == input.Height)
+                    color = input.GetPixel(xPixel, yPixel -1);
+                    else
                     color = input.GetPixel(xPixel, yPixel);
                     bitmap.SetPixel(i, j, color);
                     
